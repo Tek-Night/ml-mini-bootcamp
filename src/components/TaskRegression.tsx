@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { makePoints, rSquared, type Point } from "@/lib/bootcamp";
 
 const W = 620;
@@ -31,7 +31,9 @@ export function TaskRegression({
   const intercept = yLeft - slope * X0;
   const r2 = Math.max(0, rSquared(points, slope, intercept));
   const pass = r2 >= 0.8;
-  if (pass && !done) onComplete();
+  useEffect(() => {
+    if (pass && !done) onComplete();
+  }, [pass, done, onComplete]);
 
   const move = useCallback(
     (e: React.PointerEvent) => {

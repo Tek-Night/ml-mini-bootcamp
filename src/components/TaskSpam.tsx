@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   SAMPLE_HAM,
   SAMPLE_SPAM,
@@ -21,7 +21,9 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
     ? Math.round((rows.filter((r) => r.actual === r.predicted).length / rows.length) * 100)
     : 0;
   const pass = rows !== null && accuracy >= 60;
-  if (pass && !done) onComplete();
+  useEffect(() => {
+    if (pass && !done) onComplete();
+  }, [pass, done, onComplete]);
 
   const setAt = (
     list: string[],
