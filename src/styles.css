@@ -43,6 +43,16 @@
   --color-house: var(--house);
   --color-house-dark: var(--house-dark);
   --color-road: var(--road);
+  --color-track-edge: var(--track-edge);
+  --color-track-marking: var(--track-marking);
+  --color-barrier: var(--barrier);
+  --color-barrier-light: var(--barrier-light);
+  --color-barrier-edge: var(--barrier-edge);
+  --color-checker-dark: var(--checker-dark);
+  --color-checker-light: var(--checker-light);
+  --color-car-wheel: var(--car-wheel);
+  --color-car-cabin: var(--car-cabin);
+  --color-car-glass: var(--car-glass);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
 }
@@ -76,7 +86,17 @@
   --track: #e8e8e8;
   --house: #b6a894;
   --house-dark: #8d7f6b;
-  --road: #e9e9e9;
+  --road: #696b6c;
+  --track-edge: #d8d8d5;
+  --track-marking: #e8c547;
+  --barrier: #a9584d;
+  --barrier-light: #eeeae2;
+  --barrier-edge: #7d4b45;
+  --checker-dark: #292929;
+  --checker-light: #f2f0e9;
+  --car-wheel: #1f2021;
+  --car-cabin: #aeb8bd;
+  --car-glass: #d9e0e2;
 }
 
 @layer base {
@@ -145,6 +165,27 @@
   }
 }
 
+@keyframes car-finish {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.2); }
+  72% { transform: scale(0.94); }
+}
+
+@keyframes finish-flash {
+  0%, 100% { background-color: transparent; }
+  45% { background-color: var(--success-bg); }
+}
+
+@keyframes barrier-impact {
+  0%, 100% { filter: none; }
+  40% { filter: saturate(1.5) brightness(1.18); }
+}
+
+@keyframes impact-spark {
+  from { opacity: 0.9; transform: scale(0.35); }
+  to { opacity: 0; transform: scale(1.8); }
+}
+
 @utility animate-fade-in-up {
   animation: fade-in-up 0.32s ease-out both;
 }
@@ -159,6 +200,81 @@
 
 @utility animate-robot-bump {
   animation: robot-bump 0.3s ease-in-out;
+}
+
+@utility animate-car-skid {
+  animation: robot-bump 0.3s ease-in-out;
+}
+
+@utility animate-car-finish {
+  animation: car-finish 0.35s ease-out;
+}
+
+@utility animate-finish-flash {
+  animation: finish-flash 0.35s ease-out;
+}
+
+@utility animate-barrier-impact {
+  animation: barrier-impact 0.35s ease-out;
+}
+
+@utility safety-barrier {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--barrier) 0 10px,
+    var(--barrier-light) 10px 20px
+  );
+}
+
+@utility start-line {
+  background-color: var(--checker-light);
+  background-image:
+    linear-gradient(45deg, var(--checker-dark) 25%, transparent 25%, transparent 75%, var(--checker-dark) 75%),
+    linear-gradient(45deg, var(--checker-dark) 25%, transparent 25%, transparent 75%, var(--checker-dark) 75%);
+  background-position: 0 0, 5px 5px;
+  background-size: 10px 10px;
+}
+
+@utility track-line-v {
+  position: absolute;
+  left: 50%;
+  height: 52%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(to bottom, var(--track-marking) 0 8px, transparent 8px 13px);
+}
+
+@utility track-line-h {
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  width: 52%;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(to right, var(--track-marking) 0 8px, transparent 8px 13px);
+}
+
+@utility impact-spark {
+  background-color: var(--track-marking);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--barrier-light) 70%, transparent);
+  animation: impact-spark 0.35s ease-out both;
+}
+
+.car-heading {
+  transform-origin: center;
+  transform-box: fill-box;
+  transition: transform 300ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .car-heading,
+  .animate-car-skid,
+  .animate-car-finish,
+  .animate-finish-flash,
+  .animate-barrier-impact,
+  .impact-spark {
+    animation: none;
+    transition-duration: 0ms;
+  }
 }
 
 @utility panel {
