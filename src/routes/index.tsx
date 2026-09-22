@@ -69,7 +69,7 @@ function Index() {
   return (
     <main className="mx-auto max-w-5xl px-5 py-10">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">ML Mini Bootcamp</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Reboot Games 2026</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Three short, hands-on machine learning tasks you can finish in one sitting.
         </p>
