@@ -87,11 +87,20 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
       <div className="panel space-y-4 p-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-3">
+            <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-semibold text-fail">Spam example:</span>{" "}
+              Congratulations! You've won a $1,000 gift card, click here to claim it before
+              it expires
+            </p>
             {spam.map((v, i) =>
               field(`Spam example ${i + 1}`, v, (nv) => setAt(spam, setSpam, i, nv)),
             )}
           </div>
           <div className="space-y-3">
+            <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-semibold text-slate-accent">Legitimate example:</span>{" "}
+              The package you ordered has shipped and should arrive by Friday
+            </p>
             {ham.map((v, i) =>
               field(`Legitimate example ${i + 1}`, v, (nv) => setAt(ham, setHam, i, nv)),
             )}
