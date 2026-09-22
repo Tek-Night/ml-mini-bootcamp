@@ -128,7 +128,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[auto_1fr]">
-        <div className="panel w-full max-w-[412px] p-4">
+        <div className="panel w-full max-w-[412px] p-4 lg:w-[412px]">
           <div
             className="relative aspect-square w-full overflow-hidden rounded-md bg-track-edge"
           >
