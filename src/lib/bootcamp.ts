@@ -204,7 +204,7 @@ export const ACTIONS = [
 ] as const;
 
 export function isBlocked(r: number, c: number) {
-  return r < 0 || c < 0 || r >= GRID || c >= GRID || WALLS[r][c];
+  return r < 0 || c < 0 || r >= GRID || c >= GRID || !!WALLS[r]![c];
 }
 
 export function bfsOptimal(): number {
@@ -253,13 +253,13 @@ export function qUpdate(
 ) {
   const cur = qGet(q, r, c);
   const best = terminal ? 0 : Math.max(...qGet(q, nr, nc));
-  cur[a] = cur[a] + ALPHA * (reward + GAMMA * best - cur[a]);
+  cur[a] = cur[a]! + ALPHA * (reward + GAMMA * best - cur[a]!);
 }
 
 export function chooseAction(q: QTable, r: number, c: number, epsilon: number): number {
   if (Math.random() < epsilon) return Math.floor(Math.random() * 4);
   const vals = qGet(q, r, c);
   let best = 0;
-  for (let i = 1; i < 4; i++) if (vals[i] > vals[best]) best = i;
+  for (let i = 1; i < 4; i++) if (vals[i]! > vals[best]!) best = i;
   return best;
 }
