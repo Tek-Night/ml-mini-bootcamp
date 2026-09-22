@@ -27,7 +27,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
   const [running, setRunning] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
   const [history, setHistory] = useState<number[]>([]);
-  const [message, setMessage] = useState("Press “Start episode” to let the robot explore.");
+  const [message, setMessage] = useState("Press “Start episode” to let the car explore the track.");
   const [direction, setDirection] = useState(0);
   const [walkKey, setWalkKey] = useState(0);
   const [bumpKey, setBumpKey] = useState(0);
@@ -49,12 +49,12 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
     if (reached && finalSteps <= optimal + 2) {
       setComplete(true);
       setMessage(
-        `Goal reached in ${finalSteps} steps — within ${optimal + 2}. Task 3 complete!`,
+        `Finished! Reached the checkpoint in ${finalSteps} steps — within ${optimal + 2}. Task 3 complete!`,
       );
     } else if (reached) {
-      setMessage(`Goal reached in ${finalSteps} steps. Target is ${optimal + 2} or fewer.`);
+      setMessage(`Finished! Reached the checkpoint in ${finalSteps} steps. Target is ${optimal + 2} or fewer.`);
     } else {
-      setMessage("Episode stopped — the robot wandered too long. Try another episode.");
+      setMessage("Episode stopped — the car took too long. Try another episode.");
     }
   };
 
@@ -92,7 +92,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
       return;
     }
 
-    setMessage("Was that a good move? Reward or punish the robot.");
+    setMessage("Was that a good move? Reward or punish the car.");
     setPending({ r, c, a, nr, nc });
   };
 
@@ -110,7 +110,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
     setPos(START);
     setSteps(0);
     setRunning(true);
-    setMessage("The robot is walking…");
+    setMessage("The car is driving…");
     window.setTimeout(() => step(START[0], START[1], 0), 300);
   };
 
