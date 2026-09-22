@@ -15,13 +15,13 @@ import { TaskMaze } from "@/components/TaskMaze";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ML Mini Bootcamp — three hands-on machine learning tasks" },
+      { title: "AI/ML Reboot Games 2026" },
       {
         name: "description",
         content:
           "Fit a regression line, train a spam filter and teach a robot to walk — three short machine learning tasks that run entirely in your browser.",
       },
-      { property: "og:title", content: "ML Mini Bootcamp" },
+      { property: "og:title", content: "AI/ML Reboot Games 2026" },
       {
         property: "og:description",
         content:
