@@ -12,7 +12,6 @@ import {
   type QTable,
 } from "@/lib/bootcamp";
 
-const CELL = 76;
 const MAX_STEPS = 60;
 
 type Pending = { r: number; c: number; a: number; nr: number; nc: number } | null;
@@ -29,9 +28,11 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
   const [pending, setPending] = useState<Pending>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [message, setMessage] = useState("Press “Start episode” to let the robot explore.");
-  const [facing, setFacing] = useState(1);
+  const [direction, setDirection] = useState(0);
   const [walkKey, setWalkKey] = useState(0);
   const [bumpKey, setBumpKey] = useState(0);
+  const [impactCell, setImpactCell] = useState<[number, number] | null>(null);
+  const [finishKey, setFinishKey] = useState(0);
   const [complete, setComplete] = useState(false);
 
   useEffect(() => {
@@ -68,12 +69,14 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
     const nc = c + act[1];
     const newSteps = count + 1;
     setSteps(newSteps);
-    if (act[1] !== 0) setFacing(act[1] > 0 ? 1 : -1);
+    setDirection(act[1] > 0 ? 0 : act[0] > 0 ? 90 : act[1] < 0 ? 180 : 270);
 
     if (isBlocked(nr, nc)) {
       qUpdate(q.current, r, c, a, -5, r, c, false);
       setBumpKey((k) => k + 1);
-      setMessage("Bumped into a building — automatic penalty of −5.");
+      setImpactCell([nr, nc]);
+      setMessage("Crashed into a barrier — auto-penalized, continuing.");
+      window.setTimeout(() => setImpactCell(null), 360);
       window.setTimeout(() => step(r, c, newSteps), 650);
       return;
     }
@@ -83,6 +86,8 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
 
     if (nr === GOAL[0] && nc === GOAL[1]) {
       qUpdate(q.current, r, c, a, 50, nr, nc, true);
+      setFinishKey((k) => k + 1);
+      setMessage("Finished! Reached the checkpoint.");
       window.setTimeout(() => endEpisode(newSteps, true), 350);
       return;
     }
@@ -112,19 +117,20 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
   return (
     <div className="animate-fade-in-up space-y-5">
       <header>
-        <h2 className="text-lg font-semibold">Task 3 — Train the walking robot</h2>
+        <h2 className="text-lg font-semibold">Task 3 — Train the racing car</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          The robot learns your neighbourhood by trial and error. Reward or punish each
-          move; it reaches the flag on its own. Finish an episode in {optimal + 2} steps or
+          The car starts at the starting line and has to reach the checkered checkpoint
+          through the track, without crashing into a barrier. After each move, click Reward
+          if it was a good move or Punish if it wasn&apos;t — your feedback shapes its Q-values.
+          Run several episodes and watch it get faster. Finish in {optimal + 2} steps or
           fewer to complete the task.
         </p>
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[auto_1fr]">
-        <div className="panel p-4">
+        <div className="panel w-full max-w-[412px] p-4">
           <div
-            className="relative"
-            style={{ width: CELL * GRID, height: CELL * GRID, maxWidth: "100%" }}
+            className="relative aspect-square w-full overflow-hidden rounded-md bg-track-edge"
           >
             {WALLS.map((row, r) =>
               row.map((wall, c) => {
@@ -134,47 +140,44 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
                   <div
                     key={`${r}-${c}`}
                     className="absolute"
-                    style={{ left: c * CELL, top: r * CELL, width: CELL, height: CELL }}
+                    style={{ left: `${c * 20}%`, top: `${r * 20}%`, width: "20%", height: "20%" }}
                   >
                     {wall ? (
-                      <div className="relative h-full w-full p-2">
-                        <div
-                          className="absolute inset-x-3 bottom-3 top-6 rounded-[3px]"
-                          style={{ backgroundColor: "#b6a894", boxShadow: "0 3px 6px rgba(0,0,0,0.12)" }}
-                        />
-                        <div
-                          className="absolute left-1.5 right-1.5 top-3"
-                          style={{
-                            height: 0,
-                            borderLeft: "26px solid transparent",
-                            borderRight: "26px solid transparent",
-                            borderBottom: "16px solid #8d7f6b",
-                          }}
-                        />
-                        <div className="absolute inset-x-0 bottom-7 flex justify-center gap-1.5">
-                          <span className="block h-2.5 w-2.5 rounded-[2px] bg-[#efe9e0]" />
-                          <span className="block h-2.5 w-2.5 rounded-[2px] bg-[#efe9e0]" />
-                        </div>
+                      <div
+                        className={`relative h-full w-full p-[7px] ${
+                          impactCell?.[0] === r && impactCell[1] === c
+                            ? "animate-barrier-impact"
+                            : ""
+                        }`}
+                      >
+                        <div className="safety-barrier h-full w-full rounded-[3px] border border-barrier-edge shadow-sm" />
+                        {impactCell?.[0] === r && impactCell[1] === c && (
+                          <span className="impact-spark absolute bottom-2 left-2 h-4 w-4 rounded-full" />
+                        )}
                       </div>
                     ) : (
                       <div className="relative h-full w-full p-[3px]">
-                        <div className="relative h-full w-full rounded-[4px] bg-road">
-                          <div className="absolute left-1/2 top-0 h-full w-0 -translate-x-1/2 border-l border-dashed border-white" />
-                          <div className="absolute left-0 top-1/2 h-0 w-full -translate-y-1/2 border-t border-dashed border-white" />
+                        <div className="relative h-full w-full overflow-hidden rounded-[3px] bg-road">
+                          {r > 0 && !WALLS[r - 1]?.[c] && <span className="track-line-v top-0" />}
+                          {r < GRID - 1 && !WALLS[r + 1]?.[c] && <span className="track-line-v bottom-0" />}
+                          {c > 0 && !WALLS[r]?.[c - 1] && <span className="track-line-h left-0" />}
+                          {c < GRID - 1 && !WALLS[r]?.[c + 1] && <span className="track-line-h right-0" />}
                           {isStart && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <svg width="30" height="26" viewBox="0 0 30 26">
-                                <polygon points="15,3 28,13 2,13" fill="#8d7f6b" />
-                                <rect x="6" y="13" width="18" height="10" fill="#b6a894" />
-                                <rect x="12" y="16" width="6" height="7" fill="#efe9e0" />
-                              </svg>
-                            </div>
+                            <div className="start-line absolute inset-y-1 left-2 w-5 border-y border-checker-dark" />
                           )}
                           {isGoal && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <svg width="26" height="30" viewBox="0 0 26 30">
-                                <rect x="6" y="3" width="2" height="24" fill="#2f2f2f" />
-                                <polygon points="8,4 21,9 8,14" fill="#2e6b3e" />
+                            <div
+                              key={`finish-${finishKey}`}
+                              className={`absolute inset-0 flex items-center justify-center ${
+                                finishKey ? "animate-finish-flash" : ""
+                              }`}
+                            >
+                              <svg aria-label="Checkered checkpoint" width="34" height="42" viewBox="0 0 34 42">
+                                <rect x="5" y="4" width="2.5" height="34" rx="1" className="fill-checker-dark" />
+                                <g className="finish-checkers">
+                                  <rect x="7" y="5" width="20" height="16" className="fill-checker-light" />
+                                  <path d="M7 5h5v4H7zm10 0h5v4h-5zm5 4h5v4h-5zM12 9h5v4h-5zm-5 4h5v4H7zm10 0h5v4h-5zm5 4h5v4h-5zM12 17h5v4h-5z" className="fill-checker-dark" />
+                                </g>
                               </svg>
                             </div>
                           )}
@@ -189,31 +192,38 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
             <div
               className="pointer-events-none absolute transition-all duration-300 ease-out"
               style={{
-                left: pos[1] * CELL,
-                top: pos[0] * CELL,
-                width: CELL,
-                height: CELL,
+                left: `${pos[1] * 20}%`,
+                top: `${pos[0] * 20}%`,
+                width: "20%",
+                height: "20%",
               }}
             >
               <div
                 key={`bump-${bumpKey}`}
-                className={bumpKey ? "animate-robot-bump h-full w-full" : "h-full w-full"}
+                className={bumpKey ? "animate-car-skid h-full w-full" : "h-full w-full"}
               >
                 <div
                   key={`walk-${walkKey}`}
-                  className="animate-robot-walk flex h-full w-full items-center justify-center"
-                  style={{ transform: `scaleX(${facing})` }}
+                  className={`flex h-full w-full items-center justify-center ${
+                    finishKey && pos[0] === GOAL[0] && pos[1] === GOAL[1]
+                      ? "animate-car-finish"
+                      : ""
+                  }`}
                 >
-                  <svg width="34" height="40" viewBox="0 0 34 40">
-                    <line x1="17" y1="2" x2="17" y2="7" stroke="#2f2f2f" strokeWidth="2" />
-                    <circle cx="17" cy="2" r="2" fill="#3f5170" />
-                    <rect x="8" y="7" width="18" height="11" rx="3" fill="#2f2f2f" />
-                    <rect x="11" y="11" width="12" height="4" rx="2" fill="#7f97c4" />
-                    <rect x="10" y="19" width="14" height="12" rx="2" fill="#3a3a3a" />
-                    <rect x="4" y="20" width="5" height="9" rx="2" fill="#2f2f2f" />
-                    <rect x="25" y="20" width="5" height="9" rx="2" fill="#2f2f2f" />
-                    <rect x="11" y="31" width="4" height="7" rx="1.5" fill="#2f2f2f" />
-                    <rect x="19" y="31" width="4" height="7" rx="1.5" fill="#2f2f2f" />
+                  <svg aria-label="Racing car" className="h-[70%] w-[70%] overflow-visible" viewBox="-25 -18 50 36">
+                    <g
+                      className="car-heading"
+                      style={{ transform: `rotate(${direction}deg)` }}
+                    >
+                      <circle cx="-11" cy="-14" r="4" className="fill-car-wheel" />
+                      <circle cx="-11" cy="14" r="4" className="fill-car-wheel" />
+                      <circle cx="11" cy="-14" r="4" className="fill-car-wheel" />
+                      <circle cx="11" cy="14" r="4" className="fill-car-wheel" />
+                      <rect x="-20" y="-13" width="40" height="26" rx="8" className="fill-primary" />
+                      <path d="M18-8 24 0l-6 8z" className="fill-primary" />
+                      <rect x="-8" y="-9" width="15" height="18" rx="4" className="fill-car-cabin" />
+                      <path d="M8-8h6l4 5H8zM8 3h10l-4 5H8z" className="fill-car-glass" />
+                    </g>
                   </svg>
                 </div>
               </div>
@@ -259,7 +269,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
             </div>
             {complete && (
               <p className="animate-fade-in-up mt-3 rounded-md bg-success-bg px-3 py-2 text-sm text-success">
-                Task 3 complete — the robot found a near-optimal route.
+                Task 3 complete — the car found a near-optimal route.
               </p>
             )}
           </div>
