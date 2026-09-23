@@ -186,6 +186,20 @@
   to { opacity: 0; transform: scale(1.8); }
 }
 
+@keyframes training-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes training-node-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.65; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+@keyframes training-spin {
+  to { transform: rotate(360deg); }
+}
+
 @utility animate-fade-in-up {
   animation: fade-in-up 0.32s ease-out both;
 }
@@ -265,6 +279,27 @@
   transition: transform 300ms ease-out;
 }
 
+.training-link {
+  stroke: var(--border);
+  stroke-width: 2;
+  animation: training-pulse 0.9s ease-in-out infinite;
+}
+
+.training-node {
+  fill: var(--slate-accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: training-node-pulse 1s ease-in-out infinite;
+}
+
+.training-signal {
+  fill: var(--foreground);
+}
+
+.training-spinner {
+  animation: training-spin 0.8s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .car-heading,
   .animate-car-skid,
@@ -274,6 +309,12 @@
   .impact-spark {
     animation: none;
     transition-duration: 0ms;
+  }
+
+  .training-link,
+  .training-node,
+  .training-spinner {
+    animation: none;
   }
 }
 
