@@ -57,7 +57,24 @@ export function TaskRegression({
           Drag the two square handles up and down to tilt the line. Get it close to the
           true trend between CPU speed and temperature (R² of 80% or more) to finish.
         </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Linear regression finds the line <span className="font-mono text-foreground">y = mx + b</span>{" "}
+          that best fits the data by minimizing the distance between the line and each point.
+        </p>
       </header>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted px-4 py-3">
+        <div>
+          <p className="text-xs font-medium uppercase text-muted-foreground">The equation of a line</p>
+          <p className="mt-1 font-mono text-base font-semibold tabular-nums">
+            y = {slope.toFixed(1)}x {intercept < 0 ? "−" : "+"} {Math.abs(intercept).toFixed(1)}
+          </p>
+        </div>
+        <div className="flex gap-4 text-xs text-muted-foreground">
+          <span><strong className="text-foreground">m</strong> = slope</span>
+          <span><strong className="text-foreground">b</strong> = intercept</span>
+        </div>
+      </div>
 
       <div className="panel overflow-hidden">
         <svg

@@ -11,6 +11,12 @@ import {
   qUpdate,
   type QTable,
 } from "@/lib/bootcamp";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const MAX_STEPS = 60;
 
@@ -117,7 +123,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
   return (
     <div className="animate-fade-in-up space-y-5">
       <header>
-        <h2 className="text-lg font-semibold">Task 3 — Train the racing car</h2>
+        <h2 className="text-lg font-semibold">Task 3: Reinforcement Learning — Train the racing car</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           The car starts at the starting line and has to reach the checkered checkpoint
           through the track, without crashing into a barrier. After each move, click Reward
@@ -125,7 +131,36 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
           Run several episodes and watch it get faster. Finish in {optimal + 2} steps or
           fewer to complete the task.
         </p>
+        <p className="mt-3 border-l-2 border-slate-accent pl-3 text-sm text-muted-foreground">
+          This task uses reinforcement learning: the car doesn&apos;t know the best path in
+          advance — it learns through trial and error, using your rewards and punishments
+          to update its internal Q-values after every move.
+        </p>
       </header>
+
+      <Accordion type="single" collapsible className="panel px-4">
+        <AccordionItem value="q-learning" className="border-0">
+          <AccordionTrigger>How this works</AccordionTrigger>
+          <AccordionContent className="space-y-3 text-muted-foreground">
+            <p>
+              Each time you click Reward or Punish, the car updates a score for “how good
+              was this move in this exact situation” using the Q-learning formula. Over
+              many episodes, it starts preferring moves with higher scores — which is why
+              it gets faster the more you train it.
+            </p>
+            <div className="overflow-x-auto rounded-md bg-muted px-3 py-2">
+              <p className="mb-1 text-xs font-medium text-foreground">Q-value update</p>
+              <p className="whitespace-nowrap font-mono text-xs text-foreground">
+                Q(state, action) ← Q(state, action) + α × (reward + γ × max(Q(next state)) − Q(state, action))
+              </p>
+            </div>
+            <p className="text-xs">
+              A Q-value is a learned action score. Here, α controls how quickly the car
+              learns, while γ controls how much it values future rewards.
+            </p>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <div className="grid gap-5 lg:grid-cols-[auto_1fr]">
         <div className="panel w-full max-w-[412px] p-4 lg:w-[412px]">

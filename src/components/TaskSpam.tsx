@@ -1,5 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TEST_EMAILS, classify, trainNaiveBayes, type NBModel } from "@/lib/bootcamp";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type Row = { text: string; actual: "spam" | "ham"; predicted: "spam" | "ham" };
 
@@ -9,6 +15,12 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
   const [model, setModel] = useState<NBModel | null>(null);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState("");
+  const [training, setTraining] = useState(false);
+  const trainingTimer = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (trainingTimer.current !== null) window.clearTimeout(trainingTimer.current);
+  }, []);
 
   const accuracy = rows
     ? Math.round((rows.filter((r) => r.actual === r.predicted).length / rows.length) * 100)
@@ -36,7 +48,13 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
     }
     setError("");
     setRows(null);
-    setModel(trainNaiveBayes(spam, ham));
+    setModel(null);
+    setTraining(true);
+    trainingTimer.current = window.setTimeout(() => {
+      setModel(trainNaiveBayes(spam, ham));
+      setTraining(false);
+      trainingTimer.current = null;
+    }, 1800);
   };
 
   const test = () => {
@@ -77,6 +95,27 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
         </p>
       </header>
 
+      <Accordion type="single" collapsible className="panel px-4">
+        <AccordionItem value="bayes" className="border-0">
+          <AccordionTrigger>How this works</AccordionTrigger>
+          <AccordionContent className="space-y-3 text-muted-foreground">
+            <p className="overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-xs text-foreground">
+              P(spam | words) = P(words | spam) × P(spam) / P(words)
+            </p>
+            <p>
+              Naive Bayes looks at each word in an email and asks: how often did this word
+              show up in spam examples vs. legitimate examples? It combines those
+              probabilities across all the words to decide which class is more likely —
+              that&apos;s Bayes&apos; Theorem in action.
+            </p>
+            <p>
+              This is the same basic idea behind real email spam filters, and is also used
+              in text classification tasks like sentiment analysis.
+            </p>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
       <div className="panel space-y-4 p-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-3">
@@ -103,9 +142,10 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={train}
+            disabled={training}
             className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Train model
+            {training ? "Training…" : "Train model"}
           </button>
           {model && (
             <button
@@ -116,12 +156,13 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
               Run test on new mail
             </button>
           )}
-          {model && (
+          {model && !training && (
             <span className="text-xs text-muted-foreground">
-              Trained on {model.vocab.length} unique words.
+              Model trained on 10 examples · {model.vocab.length} unique words.
             </span>
           )}
         </div>
+        {training && <TrainingVisual />}
         {error && (
           <p className="rounded-md bg-fail-bg px-3 py-2 text-sm text-fail">{error}</p>
         )}
@@ -175,6 +216,42 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function TrainingVisual() {
+  const nodes = [
+    [18, 20], [18, 54], [18, 88],
+    [90, 30], [90, 74],
+    [162, 37], [162, 67],
+  ] as const;
+  const links = [
+    [18, 20, 90, 30], [18, 20, 90, 74], [18, 54, 90, 30],
+    [18, 54, 90, 74], [18, 88, 90, 30], [18, 88, 90, 74],
+    [90, 30, 162, 37], [90, 30, 162, 67], [90, 74, 162, 37], [90, 74, 162, 67],
+  ] as const;
+
+  return (
+    <div className="animate-fade-in-up rounded-md border border-border bg-muted px-4 py-3" role="status" aria-live="polite">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <span className="training-spinner h-3.5 w-3.5 rounded-full border-2 border-border border-t-slate-accent" />
+        Training model...
+      </div>
+      <svg aria-hidden="true" viewBox="0 0 180 108" className="mt-2 h-24 w-full">
+        {links.map(([x1, y1, x2, y2], i) => (
+          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} className="training-link" style={{ animationDelay: `${i * 90}ms` }} />
+        ))}
+        {nodes.map(([cx, cy], i) => (
+          <circle key={i} cx={cx} cy={cy} r="6" className="training-node" style={{ animationDelay: `${i * 120}ms` }} />
+        ))}
+        <circle r="3" className="training-signal">
+          <animateMotion dur="1.1s" repeatCount="indefinite" path="M18 54 L90 30 L162 67" />
+        </circle>
+      </svg>
+      <p className="text-xs text-muted-foreground">
+        Illustrating how word evidence flows into a decision; the classifier itself uses Naive Bayes.
+      </p>
     </div>
   );
 }

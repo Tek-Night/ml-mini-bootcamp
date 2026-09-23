@@ -37,7 +37,7 @@ export const Route = createFileRoute("/")({
 const TABS = [
   { id: 1, label: "Line of best fit" },
   { id: 2, label: "Spam classifier" },
-  { id: 3, label: "Walking robot" },
+  { id: 3, label: "RL Maze" },
 ] as const;
 
 function Index() {
