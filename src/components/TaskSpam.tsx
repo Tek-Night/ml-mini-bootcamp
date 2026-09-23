@@ -102,16 +102,6 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => {
-              setSpam([...SAMPLE_SPAM]);
-              setHam([...SAMPLE_HAM]);
-              setError("");
-            }}
-            className="rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-muted"
-          >
-            Fill sample data
-          </button>
-          <button
             onClick={train}
             className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground transition-opacity hover:opacity-90"
           >
