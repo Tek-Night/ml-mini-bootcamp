@@ -4,3 +4,7 @@
 - [x] Remove "Fill sample data" button from Task 2
 - [x] Add beginner-friendly learning explanations to all three tasks
 - [x] Rename the third tab to "RL Maze"
+- [ ] Tune RL learning rate, exploration decay, and episode limits
+- [ ] Discourage immediate reversals and repeated-cell visits
+- [ ] Add fading route trails, learned-action arrows, and improvement feedback
+- [ ] Verify unchanged completion rules, stats, and track/car styling
