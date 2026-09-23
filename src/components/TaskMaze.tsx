@@ -121,7 +121,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
       setImpactCell([nr, nc]);
       setMessage("Crashed into a barrier — auto-penalized, continuing.");
       window.setTimeout(() => setImpactCell(null), 360);
-      window.setTimeout(() => step(r, c, newSteps, maxSteps, a), 650);
+      window.setTimeout(() => step(r, c, newSteps, maxSteps, previousAction), 650);
       return;
     }
 
