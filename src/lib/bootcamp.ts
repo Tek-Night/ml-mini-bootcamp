@@ -231,7 +231,7 @@ export function bfsOptimal(): number {
   return Infinity;
 }
 
-export const ALPHA = 0.5;
+export const ALPHA = 0.7;
 export const GAMMA = 0.9;
 export type QTable = Record<string, number[]>;
 
@@ -256,8 +256,25 @@ export function qUpdate(
   cur[a] = cur[a]! + ALPHA * (reward + GAMMA * best - cur[a]!);
 }
 
-export function chooseAction(q: QTable, r: number, c: number, epsilon: number): number {
-  if (Math.random() < epsilon) return Math.floor(Math.random() * 4);
+export function chooseAction(
+  q: QTable,
+  r: number,
+  c: number,
+  epsilon: number,
+  previousAction?: number,
+): number {
+  if (Math.random() < epsilon) {
+    const validActions = ACTIONS.map((action, index) => ({ action, index })).filter(
+      ({ action }) => !isBlocked(r + action[0], c + action[1]),
+    );
+    const reverseAction = previousAction === undefined ? undefined : previousAction ^ 1;
+    const preferredActions = validActions.filter(({ index }) => index !== reverseAction);
+    const choices = preferredActions.length ? preferredActions : validActions;
+    if (choices.length) {
+      return choices[Math.floor(Math.random() * choices.length)]?.index ?? 0;
+    }
+    return Math.floor(Math.random() * 4);
+  }
   const vals = qGet(q, r, c);
   let best = 0;
   for (let i = 1; i < 4; i++) if (vals[i]! > vals[best]!) best = i;

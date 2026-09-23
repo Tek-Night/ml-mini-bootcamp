@@ -8,6 +8,7 @@ import {
   bfsOptimal,
   chooseAction,
   isBlocked,
+  qGet,
   qUpdate,
   type QTable,
 } from "@/lib/bootcamp";
@@ -18,14 +19,25 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const MAX_STEPS = 60;
+const FIRST_EPISODE_MAX_STEPS = 25;
+const LATER_EPISODE_MAX_STEPS = 50;
+const REVISIT_PENALTY = -2;
+const ARROWS = ["↑", "↓", "←", "→"] as const;
 
-type Pending = { r: number; c: number; a: number; nr: number; nc: number } | null;
+type Pending = {
+  r: number;
+  c: number;
+  a: number;
+  nr: number;
+  nc: number;
+  revisited: boolean;
+} | null;
 
 export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () => void }) {
   const optimal = useMemo(() => bfsOptimal(), []);
   const q = useRef<QTable>({});
-  const epsilon = useRef(0.35);
+  const epsilon = useRef(0.2);
+  const visited = useRef(new Set<string>([START.join(",")]));
 
   const [pos, setPos] = useState<[number, number]>(START);
   const [episode, setEpisode] = useState(0);
@@ -40,18 +52,37 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
   const [impactCell, setImpactCell] = useState<[number, number] | null>(null);
   const [finishKey, setFinishKey] = useState(0);
   const [complete, setComplete] = useState(false);
+  const [trail, setTrail] = useState<Record<string, number>>({});
+  const [qVersion, setQVersion] = useState(0);
 
   useEffect(() => {
     if (complete && !done) onComplete();
   }, [complete, done, onComplete]);
 
   const best = history.length ? Math.min(...history) : null;
+  const fasterThanLastTime =
+    history.length > 1 && history[history.length - 1]! < history[history.length - 2]!;
+
+  const markVisited = (r: number, c: number) => {
+    const cell = `${r},${c}`;
+    const stamp = Date.now();
+    visited.current.add(cell);
+    setTrail((current) => ({ ...current, [cell]: stamp }));
+    window.setTimeout(() => {
+      setTrail((current) => {
+        if (current[cell] !== stamp) return current;
+        const next = { ...current };
+        delete next[cell];
+        return next;
+      });
+    }, 2200);
+  };
 
   const endEpisode = (finalSteps: number, reached: boolean) => {
     setRunning(false);
     setPending(null);
     setHistory((h) => [...h, finalSteps]);
-    epsilon.current = Math.max(0.05, epsilon.current * 0.82);
+    epsilon.current = Math.max(0.05, epsilon.current * 0.7);
     if (reached && finalSteps <= optimal + 2) {
       setComplete(true);
       setMessage(
@@ -64,12 +95,18 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
     }
   };
 
-  const step = (r: number, c: number, count: number) => {
-    if (count >= MAX_STEPS) {
+  const step = (
+    r: number,
+    c: number,
+    count: number,
+    maxSteps: number,
+    previousAction?: number,
+  ) => {
+    if (count >= maxSteps) {
       endEpisode(count, false);
       return;
     }
-    const a = chooseAction(q.current, r, c, epsilon.current);
+    const a = chooseAction(q.current, r, c, epsilon.current, previousAction);
     const act = ACTIONS[a]!;
     const nr = r + act[0];
     const nc = c + act[1];
@@ -79,19 +116,23 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
 
     if (isBlocked(nr, nc)) {
       qUpdate(q.current, r, c, a, -5, r, c, false);
+      setQVersion((version) => version + 1);
       setBumpKey((k) => k + 1);
       setImpactCell([nr, nc]);
       setMessage("Crashed into a barrier — auto-penalized, continuing.");
       window.setTimeout(() => setImpactCell(null), 360);
-      window.setTimeout(() => step(r, c, newSteps), 650);
+      window.setTimeout(() => step(r, c, newSteps, maxSteps, previousAction), 650);
       return;
     }
 
     setPos([nr, nc]);
     setWalkKey((k) => k + 1);
+    const revisited = visited.current.has(`${nr},${nc}`);
+    markVisited(nr, nc);
 
     if (nr === GOAL[0] && nc === GOAL[1]) {
       qUpdate(q.current, r, c, a, 50, nr, nc, true);
+      setQVersion((version) => version + 1);
       setFinishKey((k) => k + 1);
       setMessage("Finished! Reached the checkpoint.");
       window.setTimeout(() => endEpisode(newSteps, true), 350);
@@ -99,25 +140,34 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
     }
 
     setMessage("Was that a good move? Reward or punish the car.");
-    setPending({ r, c, a, nr, nc });
+    setPending({ r, c, a, nr, nc, revisited });
   };
 
   const respond = (reward: number) => {
     if (!pending) return;
-    const { r, c, a, nr, nc } = pending;
-    qUpdate(q.current, r, c, a, reward, nr, nc, false);
+    const { r, c, a, nr, nc, revisited } = pending;
+    qUpdate(q.current, r, c, a, reward + (revisited ? REVISIT_PENALTY : 0), nr, nc, false);
+    setQVersion((version) => version + 1);
     setPending(null);
-    setMessage(reward > 0 ? "Rewarded +10." : "Punished −10.");
-    window.setTimeout(() => step(nr, nc, steps), 350);
+    setMessage(
+      `${reward > 0 ? "Rewarded +10." : "Punished −10."}${revisited ? " Revisit penalty −2." : ""}`,
+    );
+    const maxSteps = episode === 1 ? FIRST_EPISODE_MAX_STEPS : LATER_EPISODE_MAX_STEPS;
+    window.setTimeout(() => step(nr, nc, steps, maxSteps, a), 350);
   };
 
   const start = () => {
-    setEpisode((e) => e + 1);
+    const nextEpisode = episode + 1;
+    const maxSteps = nextEpisode === 1 ? FIRST_EPISODE_MAX_STEPS : LATER_EPISODE_MAX_STEPS;
+    setEpisode(nextEpisode);
     setPos(START);
     setSteps(0);
     setRunning(true);
+    visited.current = new Set([START.join(",")]);
+    setTrail({});
+    markVisited(START[0], START[1]);
     setMessage("The car is driving…");
-    window.setTimeout(() => step(START[0], START[1], 0), 300);
+    window.setTimeout(() => step(START[0], START[1], 0, maxSteps), 300);
   };
 
   return (
@@ -137,6 +187,13 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
           to update its internal Q-values after every move.
         </p>
       </header>
+
+      {episode === 0 && (
+        <p className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+          The agent knows nothing yet — its first attempt will look random. Your Reward/Punish
+          clicks are what teach it, so don&apos;t worry about the wandering at first.
+        </p>
+      )}
 
       <Accordion type="single" collapsible className="panel px-4">
         <AccordionItem value="q-learning" className="border-0">
@@ -193,6 +250,12 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
                     ) : (
                       <div className="relative h-full w-full p-[3px]">
                         <div className="relative h-full w-full overflow-hidden rounded-[3px] bg-road">
+                          {trail[`${r},${c}`] && (
+                            <span
+                              key={trail[`${r},${c}`]}
+                              className="maze-trail pointer-events-none absolute inset-0"
+                            />
+                          )}
                           {r > 0 && !WALLS[r - 1]?.[c] && <span className="track-line-v top-0" />}
                           {r < GRID - 1 && !WALLS[r + 1]?.[c] && <span className="track-line-v bottom-0" />}
                           {c > 0 && !WALLS[r]?.[c - 1] && <span className="track-line-h left-0" />}
@@ -216,6 +279,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
                               </svg>
                             </div>
                           )}
+                          <BestActionArrow q={q.current} r={r} c={c} version={qVersion} />
                         </div>
                       </div>
                     )}
@@ -274,6 +338,9 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
               <Stat label="Optimal path (BFS)" value={optimal} />
               <Stat label="Best episode" value={best ?? "—"} />
             </div>
+            {fasterThanLastTime && (
+              <p className="mt-3 text-sm font-medium text-success">Faster than last time!</p>
+            )}
             <p className="mt-4 text-sm text-muted-foreground">{message}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
@@ -333,6 +400,36 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
         </div>
       </div>
     </div>
+  );
+}
+
+function BestActionArrow({
+  q,
+  r,
+  c,
+  version,
+}: {
+  q: QTable;
+  r: number;
+  c: number;
+  version: number;
+}) {
+  void version;
+  const values = qGet(q, r, c);
+  const strongest = Math.max(...values);
+  const weakest = Math.min(...values);
+  if (strongest === 0 && weakest === 0) return null;
+  const action = values.indexOf(strongest);
+  const confidence = Math.min(1, Math.abs(strongest - weakest) / 10);
+
+  return (
+    <span
+      aria-label={`Best learned direction: ${ARROWS[action] ?? "unknown"}`}
+      className="pointer-events-none absolute right-1 top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-card text-[10px] font-bold text-slate-accent transition-opacity"
+      style={{ opacity: 0.38 + confidence * 0.5 }}
+    >
+      {ARROWS[action]}
+    </span>
   );
 }
 
