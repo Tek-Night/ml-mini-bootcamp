@@ -186,6 +186,11 @@
   to { opacity: 0; transform: scale(1.8); }
 }
 
+@keyframes trail-fade {
+  from { opacity: 0.34; }
+  to { opacity: 0; }
+}
+
 @keyframes training-pulse {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
@@ -273,6 +278,11 @@
   animation: impact-spark 0.35s ease-out both;
 }
 
+@utility maze-trail {
+  background-color: var(--success-bg);
+  animation: trail-fade 2.2s ease-out both;
+}
+
 .car-heading {
   transform-origin: center;
   transform-box: fill-box;
@@ -309,6 +319,10 @@
   .impact-spark {
     animation: none;
     transition-duration: 0ms;
+  }
+
+  .maze-trail {
+    animation-duration: 0.01ms;
   }
 
   .training-link,
