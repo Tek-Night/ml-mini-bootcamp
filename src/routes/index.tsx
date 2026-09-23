@@ -81,8 +81,7 @@ function Index() {
 
       <div className="panel mt-6 flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
         <span className="tabular-nums">
-          Time on task: <strong className="font-semibold">{formatTime(elapsed)}</strong>{" "}
-          <span className="text-muted-foreground">/ target 10:00</span>
+          Time on task: <strong className="font-semibold">{formatTime(elapsed)}</strong>
         </span>
         <span className="text-muted-foreground">{doneCount} of 3 tasks complete</span>
       </div>
