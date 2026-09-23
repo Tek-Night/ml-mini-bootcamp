@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  SAMPLE_HAM,
-  SAMPLE_SPAM,
-  TEST_EMAILS,
-  classify,
-  trainNaiveBayes,
-  type NBModel,
-} from "@/lib/bootcamp";
+import { TEST_EMAILS, classify, trainNaiveBayes, type NBModel } from "@/lib/bootcamp";
 
 type Row = { text: string; actual: "spam" | "ham"; predicted: "spam" | "ham" };
 
