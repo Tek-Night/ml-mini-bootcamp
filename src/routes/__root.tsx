@@ -77,14 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "AI/ML Reboot Games 2026" },
+      {
+        name: "description",
+        content:
+          "Fit a regression line, train a spam filter and teach a robot to walk — three short machine learning tasks that run entirely in your browser.",
+      },
+      { property: "og:title", content: "AI/ML Reboot Games 2026" },
+      {
+        property: "og:description",
+        content:
+          "Three short, hands-on machine learning tasks: regression, a Naive Bayes spam filter and a Q-learning maze. All computed locally.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "AI/ML Reboot Games 2026" },
     ],
     links: [
       {
