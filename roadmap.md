@@ -7,4 +7,4 @@
 - [x] Tune RL learning rate, exploration decay, and episode limits
 - [x] Discourage immediate reversals and repeated-cell visits
 - [x] Add fading route trails, learned-action arrows, and improvement feedback
-- [ ] Verify unchanged completion rules, stats, and track/car styling
+- [x] Verify unchanged completion rules, stats, and track/car styling
