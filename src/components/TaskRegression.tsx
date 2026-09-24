@@ -19,7 +19,7 @@ export function TaskRegression({
   onComplete,
 }: {
   done: boolean;
-  onComplete: () => void;
+  onComplete: (metric: number) => void;
 }) {
   const points: Point[] = useMemo(() => makePoints(7), []);
   const [yLeft, setYLeft] = useState(35);
@@ -32,8 +32,8 @@ export function TaskRegression({
   const r2 = Math.max(0, rSquared(points, slope, intercept));
   const pass = r2 >= 0.8;
   useEffect(() => {
-    if (pass && !done) onComplete();
-  }, [pass, done, onComplete]);
+    if (pass && !done) onComplete(r2);
+  }, [pass, done, onComplete, r2]);
 
   const move = useCallback(
     (e: React.PointerEvent) => {

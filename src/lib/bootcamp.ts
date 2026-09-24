@@ -1,9 +1,20 @@
-export type Progress = { t1: boolean; t2: boolean; t3: boolean };
+export type Progress = {
+  t1: boolean;
+  t2: boolean;
+  t3: boolean;
+  r2?: number | undefined;
+  accuracy?: number | undefined;
+  bestSteps?: number | undefined;
+  finalScore?: number | undefined;
+  finalCode?: string | undefined;
+};
 
 const KEY = "ml-mini-bootcamp:v1";
 const TIMER_KEY = "ml-mini-bootcamp:start";
 
 export const emptyProgress: Progress = { t1: false, t2: false, t3: false };
+
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 
 export function loadProgress(): Progress {
   if (typeof window === "undefined") return emptyProgress;
@@ -11,10 +22,52 @@ export function loadProgress(): Progress {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return emptyProgress;
     const p = JSON.parse(raw) as Partial<Progress>;
-    return { t1: !!p.t1, t2: !!p.t2, t3: !!p.t3 };
+    return {
+      t1: !!p.t1,
+      t2: !!p.t2,
+      t3: !!p.t3,
+      r2: num(p.r2),
+      accuracy: num(p.accuracy),
+      bestSteps: num(p.bestSteps),
+      finalScore: num(p.finalScore),
+      finalCode: typeof p.finalCode === "string" ? p.finalCode : undefined,
+    };
   } catch {
     return emptyProgress;
   }
+}
+
+/* ---------- Final score ---------- */
+
+export function scoreBreakdown(p: Progress, optimal: number) {
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  const reg = Math.min(34, Math.round(clamp(p.r2 ?? 0, 0, 1) * 34));
+  const spam = Math.round(((p.accuracy ?? 0) / 100) * 33);
+  const maze =
+    p.bestSteps === undefined
+      ? 0
+      : Math.round(clamp(1 - (p.bestSteps - optimal) / optimal, 0, 1) * 33);
+  const total = clamp(Math.round(reg + spam + maze), 0, 100);
+  return { reg, spam, maze, total };
+}
+
+const CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const PRIME = 381001n;
+const SECRET_KEY = 98765n;
+
+export function encryptScore(score: number): string {
+  if (score < 0 || score > 100) throw new Error("Score out of range");
+  const v = BigInt(Math.trunc(score)) * PRIME + SECRET_KEY;
+  const code: string[] = new Array(6);
+  let power = 1n;
+  for (let i = 0; i < 6; i++) {
+    const d = (v / power) % 36n;
+    let c = (d + SECRET_KEY + BigInt(i)) % 36n;
+    if (c < 0n) c += 36n;
+    code[i] = CHARSET[Number(c)]!;
+    power *= 36n;
+  }
+  return code.join("");
 }
 
 export function saveProgress(p: Progress) {

@@ -1,16 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  bfsOptimal,
   emptyProgress,
+  encryptScore,
   formatTime,
   getStartTime,
   loadProgress,
   saveProgress,
+  scoreBreakdown,
   type Progress,
 } from "@/lib/bootcamp";
 import { TaskRegression } from "@/components/TaskRegression";
 import { TaskSpam } from "@/components/TaskSpam";
 import { TaskMaze } from "@/components/TaskMaze";
+import { ScoreModal } from "@/components/ScoreModal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -54,10 +58,11 @@ function Index() {
     return () => window.clearInterval(id);
   }, []);
 
-  const complete = useCallback((key: keyof Progress) => {
+  const complete = useCallback((key: "t1" | "t2" | "t3", metric: number) => {
     setProgress((p) => {
       if (p[key]) return p;
-      const next = { ...p, [key]: true };
+      const field = key === "t1" ? "r2" : key === "t2" ? "accuracy" : "bestSteps";
+      const next: Progress = { ...p, [key]: true, [field]: metric };
       saveProgress(next);
       return next;
     });
@@ -65,6 +70,19 @@ function Index() {
 
   const doneCount = Number(progress.t1) + Number(progress.t2) + Number(progress.t3);
   const pct = Math.round((doneCount / 3) * 100);
+  const allDone = progress.t1 && progress.t2 && progress.t3;
+  const optimal = useMemo(() => bfsOptimal(), []);
+  const parts = scoreBreakdown(progress, optimal);
+  const [scoreOpen, setScoreOpen] = useState(false);
+
+  useEffect(() => {
+    if (!allDone || progress.finalCode) return;
+    const finalScore = parts.total;
+    const next = { ...progress, finalScore, finalCode: encryptScore(finalScore) };
+    saveProgress(next);
+    setProgress(next);
+    setScoreOpen(true);
+  }, [allDone, progress, parts.total]);
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-10">
@@ -83,8 +101,32 @@ function Index() {
         <span className="tabular-nums">
           Time on task: <strong className="font-semibold">{formatTime(elapsed)}</strong>
         </span>
-        <span className="text-muted-foreground">{doneCount} of 3 tasks complete</span>
+        <span className="flex items-center gap-3 text-muted-foreground">
+          {doneCount} of 3 tasks complete
+          {progress.finalCode && (
+            <button
+              onClick={() => setScoreOpen(true)}
+              className="rounded-md border border-border px-3 py-1 text-xs font-medium text-foreground hover:bg-muted"
+            >
+              View my score
+            </button>
+          )}
+        </span>
       </div>
+
+      {progress.finalCode && progress.finalScore !== undefined && (
+        <ScoreModal
+          open={scoreOpen}
+          onOpenChange={setScoreOpen}
+          score={progress.finalScore}
+          code={progress.finalCode}
+          parts={parts}
+          onRetry={(t) => {
+            setScoreOpen(false);
+            setTab(t);
+          }}
+        />
+      )}
 
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-track">
         <div
@@ -128,10 +170,10 @@ function Index() {
 
       <section className="mt-6" key={tab}>
         {tab === 1 && (
-          <TaskRegression done={progress.t1} onComplete={() => complete("t1")} />
+          <TaskRegression done={progress.t1} onComplete={(m) => complete("t1", m)} />
         )}
-        {tab === 2 && <TaskSpam done={progress.t2} onComplete={() => complete("t2")} />}
-        {tab === 3 && <TaskMaze done={progress.t3} onComplete={() => complete("t3")} />}
+        {tab === 2 && <TaskSpam done={progress.t2} onComplete={(m) => complete("t2", m)} />}
+        {tab === 3 && <TaskMaze done={progress.t3} onComplete={(m) => complete("t3", m)} />}
       </section>
     </main>
   );

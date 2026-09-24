@@ -9,7 +9,7 @@ import {
 
 type Row = { text: string; actual: "spam" | "ham"; predicted: "spam" | "ham" };
 
-export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () => void }) {
+export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: (metric: number) => void }) {
   const [spam, setSpam] = useState<string[]>(["", "", "", "", ""]);
   const [ham, setHam] = useState<string[]>(["", "", "", "", ""]);
   const [model, setModel] = useState<NBModel | null>(null);
@@ -27,8 +27,8 @@ export function TaskSpam({ done, onComplete }: { done: boolean; onComplete: () =
     : 0;
   const pass = rows !== null && accuracy >= 60;
   useEffect(() => {
-    if (pass && !done) onComplete();
-  }, [pass, done, onComplete]);
+    if (pass && !done) onComplete(accuracy);
+  }, [pass, done, onComplete, accuracy]);
 
   const setAt = (
     list: string[],
