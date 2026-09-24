@@ -138,9 +138,26 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
   // — its reverse is excluded from the next choice so the car can't
   // immediately undo its own last move. Null only for the very first move
   // of an episode, when there's nothing to reverse yet.
-  const step = (r: number, c: number, count: number, incomingAction: number | null = null) => {
-    if (count >= MAX_STEPS) {
-      endEpisode(count, false);
+  //
+  // `moveCount` counts only REAL moves (toward MAX_STEPS and the pass
+  // target) — a wall bump costs its −5 penalty but does not burn your
+  // step budget, since "crashed and used up the whole episode" isn't a
+  // fair way to lose. `attempt` is a separate, generous safety cap purely
+  // to stop runaway recursion; it should essentially never be hit.
+  const HARD_ATTEMPT_CAP = 300;
+  const step = (
+    r: number,
+    c: number,
+    moveCount: number,
+    incomingAction: number | null = null,
+    attempt = 0,
+  ) => {
+    if (moveCount >= MAX_STEPS) {
+      endEpisode(moveCount, false);
+      return;
+    }
+    if (attempt >= HARD_ATTEMPT_CAP) {
+      endEpisode(moveCount, false);
       return;
     }
     const exclude = incomingAction === null ? null : REVERSE_ACTION[incomingAction];
@@ -148,8 +165,6 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
     const act = ACTIONS[a]!;
     const nr = r + act[0];
     const nc = c + act[1];
-    const newSteps = count + 1;
-    setSteps(newSteps);
     setDirection(act[1] > 0 ? 0 : act[0] > 0 ? 90 : act[1] < 0 ? 180 : 270);
 
     if (isBlocked(nr, nc)) {
@@ -158,13 +173,15 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
       setQVersion((v) => v + 1);
       setBumpKey((k) => k + 1);
       setImpactCell([nr, nc]);
-      setEvent({ text: "Crashed into a barrier — that's a fixed rule, always −5, no click needed.", kind: "auto" });
+      setEvent({ text: "Crashed into a barrier — that's a fixed rule, always −5, no click needed. Doesn't cost you a step.", kind: "auto" });
       window.setTimeout(() => setImpactCell(null), 360);
-      // Still at (r, c) — keep excluding the same reversal on the retry.
-      window.setTimeout(() => step(r, c, newSteps, incomingAction), 500);
+      // Still at (r, c), moveCount unchanged — a bump doesn't spend a step.
+      window.setTimeout(() => step(r, c, moveCount, incomingAction, attempt + 1), 500);
       return;
     }
 
+    const newMoveCount = moveCount + 1;
+    setSteps(newMoveCount);
     setPos([nr, nc]);
     setWalkKey((k) => k + 1);
 
@@ -174,7 +191,7 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
       setQVersion((v) => v + 1);
       setFinishKey((k) => k + 1);
       setEvent({ text: "Reached the checkpoint — that's a fixed rule too, always +50.", kind: "auto" });
-      window.setTimeout(() => endEpisode(newSteps, true), 350);
+      window.setTimeout(() => endEpisode(newMoveCount, true), 350);
       return;
     }
 
