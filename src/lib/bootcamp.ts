@@ -185,17 +185,23 @@ export const TEST_EMAILS: { text: string; label: "spam" | "ham" }[] = [
 /* ---------- Task 3: maze + Q-learning ---------- */
 
 export const GRID = 5;
-// true = building (blocked)
+// true = building (blocked). Kept fairly open on purpose — the true
+// Manhattan-shortest distance from START to GOAL is 8, and this layout
+// still has an unobstructed 8-step route, so BFS-optimal stays 8. Fewer
+// walls than the original layout means fewer clicks get burned on wall-
+// bump recovery instead of real progress.
 export const WALLS: boolean[][] = [
   [false, false, true, false, false],
   [false, false, true, false, false],
-  [false, false, false, false, true],
-  [true, true, false, true, false],
+  [false, false, false, false, false],
+  [false, true, false, true, false],
   [false, false, false, false, false],
 ];
 export const START: [number, number] = [0, 0];
 export const GOAL: [number, number] = [4, 4];
 
+// Order matters — it's also the arrow-rotation lookup in TaskMaze.tsx.
+// 0 = up, 1 = down, 2 = left, 3 = right.
 export const ACTIONS = [
   [-1, 0],
   [1, 0],
@@ -231,7 +237,7 @@ export function bfsOptimal(): number {
   return Infinity;
 }
 
-export const ALPHA = 0.7;
+export const ALPHA = 0.5;
 export const GAMMA = 0.9;
 export type QTable = Record<string, number[]>;
 
@@ -256,27 +262,107 @@ export function qUpdate(
   cur[a] = cur[a]! + ALPHA * (reward + GAMMA * best - cur[a]!);
 }
 
+// Epsilon-greedy action choice. Ties are broken RANDOMLY — a fresh
+// all-zero Q-table no longer always prefers "up" first, which used to
+// bias early behavior toward the same wall/edge every time instead of
+// exploring evenly.
+//
+// `exclude` is the reverse of the action that was just taken to arrive at
+// (r, c), or null if this is the first move of the episode. Excluding it
+// stops the agent from immediately undoing its last move — undoing
+// progress is never part of a shortest path anyway, and without this a
+// reward/punish pair can cancel itself out forever (forward, reward,
+// immediately back, punish, forward again...) since the reverse action
+// starts at Q=0 and gets re-tried by exploration before it's learned.
 export function chooseAction(
   q: QTable,
   r: number,
   c: number,
   epsilon: number,
-  previousAction?: number,
+  exclude: number | null = null,
 ): number {
+  const candidates = exclude === null ? [0, 1, 2, 3] : [0, 1, 2, 3].filter((i) => i !== exclude);
   if (Math.random() < epsilon) {
-    const validActions = ACTIONS.map((action, index) => ({ action, index })).filter(
-      ({ action }) => !isBlocked(r + action[0], c + action[1]),
-    );
-    const reverseAction = previousAction === undefined ? undefined : previousAction ^ 1;
-    const preferredActions = validActions.filter(({ index }) => index !== reverseAction);
-    const choices = preferredActions.length ? preferredActions : validActions;
-    if (choices.length) {
-      return choices[Math.floor(Math.random() * choices.length)]?.index ?? 0;
-    }
-    return Math.floor(Math.random() * 4);
+    return candidates[Math.floor(Math.random() * candidates.length)]!;
   }
   const vals = qGet(q, r, c);
+  let maxVal = -Infinity;
+  for (const i of candidates) if (vals[i]! > maxVal) maxVal = vals[i]!;
+  const bestIdxs = candidates.filter((i) => vals[i] === maxVal);
+  return bestIdxs[Math.floor(Math.random() * bestIdxs.length)]!;
+}
+
+// Reverse-direction lookup: 0=up/1=down are opposites, 2=left/3=right are
+// opposites. Matches ACTIONS order in this file.
+export const REVERSE_ACTION = [1, 0, 3, 2] as const;
+
+// For rendering the agent's current "best guess" policy as arrows on the
+// grid. Returns null for a never-visited cell (nothing learned yet there).
+// `confidence` is a rough 0-1 normalization of how far the best action's
+// value is from the others, used to fade the arrow in as learning firms up.
+export function bestAction(
+  q: QTable,
+  r: number,
+  c: number,
+): { action: number; confidence: number } | null {
+  const k = `${r},${c}`;
+  const vals = q[k];
+  if (!vals || vals.every((v) => v === 0)) return null;
   let best = 0;
   for (let i = 1; i < 4; i++) if (vals[i]! > vals[best]!) best = i;
+  const spread = Math.max(...vals) - Math.min(...vals);
+  const confidence = Math.min(1, spread / 20);
+  return { action: best, confidence };
+}
+
+export function manhattan(r: number, c: number, gr: number, gc: number) {
+  return Math.abs(r - gr) + Math.abs(c - gc);
+}
+
+// True shortest-path distance from every open cell to the goal, honoring
+// walls (BFS outward from the goal). Used only for the optional "stuck"
+// hint and the honest distance note next to Reward/Punish — never for
+// automatic training, which stays entirely player-driven.
+export function distanceField(): number[][] {
+  const dist: number[][] = Array.from({ length: GRID }, () => Array(GRID).fill(Infinity));
+  dist[GOAL[0]]![GOAL[1]] = 0;
+  let frontier: [number, number][] = [GOAL];
+  while (frontier.length) {
+    const next: [number, number][] = [];
+    for (const [r, c] of frontier) {
+      for (const [dr, dc] of ACTIONS) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (isBlocked(nr, nc)) continue;
+        if (dist[nr]![nc]! > dist[r]![c]! + 1) {
+          dist[nr]![nc] = dist[r]![c]! + 1;
+          next.push([nr, nc]);
+        }
+      }
+    }
+    frontier = next;
+  }
+  return dist;
+}
+
+// The optimal next action from (r, c), for the "Show a hint" safety net.
+// Returns null at the goal itself or if the cell is somehow unreachable.
+export function bfsHintAction(r: number, c: number): number | null {
+  const dist = distanceField();
+  const cur = dist[r]?.[c];
+  if (cur === undefined || cur === Infinity || cur === 0) return null;
+  let best: number | null = null;
+  let bestDist = cur;
+  for (let a = 0; a < 4; a++) {
+    const [dr, dc] = ACTIONS[a]!;
+    const nr = r + dr;
+    const nc = c + dc;
+    if (isBlocked(nr, nc)) continue;
+    const d = dist[nr]?.[nc];
+    if (d !== undefined && d < bestDist) {
+      bestDist = d;
+      best = a;
+    }
+  }
   return best;
 }
