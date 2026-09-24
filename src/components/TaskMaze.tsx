@@ -54,7 +54,7 @@ const EVENT_STYLE: Record<EventKind, { bg: string; fg: string; label: string }> 
   success: { bg: "#e6ede6", fg: "#2e6b3e", label: "" },
 };
 
-export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () => void }) {
+export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: (metric: number) => void }) {
   const optimal = useMemo(() => bfsOptimal(), []);
   const q = useRef<QTable>({});
   const epsilon = useRef(0.35);
@@ -83,8 +83,8 @@ export function TaskMaze({ done, onComplete }: { done: boolean; onComplete: () =
   const [showHint, setShowHint] = useState(false);
 
   useEffect(() => {
-    if (complete && !done) onComplete();
-  }, [complete, done, onComplete]);
+    if (complete && !done && history.length) onComplete(Math.min(...history));
+  }, [complete, done, onComplete, history]);
 
   // The hint is "from where you are right now" — stale the moment the car
   // moves, so it always closes on the next step instead of misleading.
