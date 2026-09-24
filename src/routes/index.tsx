@@ -170,10 +170,10 @@ function Index() {
 
       <section className="mt-6" key={tab}>
         {tab === 1 && (
-          <TaskRegression done={progress.t1} onComplete={() => complete("t1")} />
+          <TaskRegression done={progress.t1} onComplete={(m) => complete("t1", m)} />
         )}
-        {tab === 2 && <TaskSpam done={progress.t2} onComplete={() => complete("t2")} />}
-        {tab === 3 && <TaskMaze done={progress.t3} onComplete={() => complete("t3")} />}
+        {tab === 2 && <TaskSpam done={progress.t2} onComplete={(m) => complete("t2", m)} />}
+        {tab === 3 && <TaskMaze done={progress.t3} onComplete={(m) => complete("t3", m)} />}
       </section>
     </main>
   );
