@@ -2,11 +2,11 @@ export type Progress = {
   t1: boolean;
   t2: boolean;
   t3: boolean;
-  r2?: number;
-  accuracy?: number;
-  bestSteps?: number;
-  finalScore?: number;
-  finalCode?: string;
+  r2?: number | undefined;
+  accuracy?: number | undefined;
+  bestSteps?: number | undefined;
+  finalScore?: number | undefined;
+  finalCode?: string | undefined;
 };
 
 const KEY = "ml-mini-bootcamp:v1";
